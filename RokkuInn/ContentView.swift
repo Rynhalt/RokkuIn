@@ -8,9 +8,13 @@
 import SwiftUI
 import FamilyControls
 
+/// Root view that controls whether the authorization gate or the block list UI is visible.
 struct ContentView: View {
+    /// Persistent authorization manager instance so state changes propagate across refreshes.
     @StateObject private var auth = AuthorizationManager()
+    /// Stores the saved domain tokens and pushes updates into the UI hierarchy.
     @StateObject private var blockingStore = BlockingStore()
+    /// Applies the selected tokens to the device-wide Screen Time shield.
     @StateObject private var shieldManager = ShieldManager()
 
     var body: some View {
@@ -29,7 +33,9 @@ struct ContentView: View {
                     NavigationStack {
                         BlockListHomeView(blockingStore: blockingStore, shieldManager: shieldManager)
                             .onAppear {
+                                // Sync the persisted block list every time the view becomes visible.
                                 blockingStore.loadBlocked()
+                                // Ensure the Managed Settings store mirrors the latest tokens.
                                 shieldManager.apply(blockedTokens: blockingStore.blocked)
                             }
                     }
@@ -40,6 +46,7 @@ struct ContentView: View {
         }
         .task(id: auth.state) {
             if auth.state == AuthorizationState.authorized {
+                // Authorization just flipped to `authorized`, so reload the cache and reapply shields.
                 blockingStore.loadBlocked()
                 shieldManager.apply(blockedTokens: blockingStore.blocked)
             }
@@ -47,6 +54,7 @@ struct ContentView: View {
     }
 }
 
+/// Simple explanatory screen that prompts the user to grant Screen Time access.
 struct AuthorizationGateView: View {
     @ObservedObject var auth: AuthorizationManager
 
@@ -62,6 +70,7 @@ struct AuthorizationGateView: View {
 
             Button("Enable Screen Time Access") {
                 Task {
+                    // The authorization request is asynchronous, so wrap it in a Task.
                     await auth.requestAuthorization()
                 }
             }
@@ -73,6 +82,7 @@ struct AuthorizationGateView: View {
         .padding()
     }
 
+    /// Human-readable description of the authorization state shown under the button.
     private var statusText: String {
         switch auth.state {
         case .unknown: return "Not determined"

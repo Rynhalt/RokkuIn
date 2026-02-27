@@ -1,53 +1,32 @@
 // BlockingStore.swift
 import Foundation
+import Combine
 import FamilyControls
+import ManagedSettings
 
-struct PersistedWebDomainToken: Codable, Hashable {
-    let data: Data
-
-    init?(from token: WebDomainToken) {
-        do {
-            let data = try NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
-            self.data = data
-        } catch {
-            return nil
-        }
-    }
-
-    func token() -> WebDomainToken? {
-        do {
-            return try NSKeyedUnarchiver.unarchivedObject(ofClass: WebDomainToken.self, from: data)
-        } catch {
-            return nil
-        }
-    }
-}
-
+/// Source of truth for the user's blocked `WebDomainToken` set.
 @MainActor
 public final class BlockingStore: ObservableObject {
     private let defaultsKey = "blockedWebDomainTokens"
-    @Published public private(set) var blocked: Set<WebDomainToken> = []
+    /// Published value consumed by SwiftUI to show counts and lists.
+    @Published public private(set) var blocked: Set<ManagedSettings.WebDomainToken> = []
 
     public init() { loadBlocked() }
 
+    /// Reloads the tokens from `UserDefaults` and publishes them to observers.
     public func loadBlocked() {
         guard let raw = UserDefaults.standard.data(forKey: defaultsKey) else { blocked = []; return }
-        do {
-            let decoded = try JSONDecoder().decode([PersistedWebDomainToken].self, from: raw)
-            blocked = Set(decoded.compactMap { $0.token() })
-        } catch {
-            blocked = []
-        }
+        blocked = (try? JSONDecoder().decode(Set<ManagedSettings.WebDomainToken>.self, from: raw)) ?? []
     }
 
+    /// Persists the current `blocked` set back to `UserDefaults`.
     public func saveBlocked() {
-        let persisted = blocked.compactMap { PersistedWebDomainToken(from: $0) }
-        if let data = try? JSONEncoder().encode(persisted) {
-            UserDefaults.standard.set(data, forKey: defaultsKey)
-        }
+        guard let data = try? JSONEncoder().encode(blocked) else { return }
+        UserDefaults.standard.set(data, forKey: defaultsKey)
     }
 
-    public func merge(new tokens: Set<WebDomainToken>) {
+    /// Adds new tokens to the set and immediately saves the merged result.
+    public func merge(new tokens: Set<ManagedSettings.WebDomainToken>) {
         blocked.formUnion(tokens)
         saveBlocked()
     }

@@ -8,8 +8,10 @@
 import Foundation
 import SwiftData
 
+/// Template SwiftData model left from the project bootstrap.
 @Model
 final class Item {
+    /// Example field representing when the entry was created.
     var timestamp: Date
     
     init(timestamp: Date) {

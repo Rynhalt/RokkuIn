@@ -2,12 +2,15 @@
 import Foundation
 import ManagedSettings
 import FamilyControls
+import Combine
 
+/// Minimal adapter that writes the selected tokens into `ManagedSettingsStore`.
 public final class ShieldManager: ObservableObject {
     private let store = ManagedSettingsStore()
     public init() {}
 
-    public func apply(blockedTokens: Set<WebDomainToken>) {
-        store.shield.webDomains = .specific(blockedTokens)
+    /// Applies the provided tokens to Screen Time, completely replacing the previous set.
+    public func apply(blockedTokens: Set<ManagedSettings.WebDomainToken>) {
+        store.shield.webDomains = blockedTokens
     }
 }

@@ -1,15 +1,17 @@
 // WebDomainPickerSheet.swift
 import SwiftUI
 import FamilyControls
+import ManagedSettings
 
-public typealias WebDomainToken = FamilyControls.WebDomain
-
+/// Thin wrapper around `FamilyActivityPicker` that returns selected web domain tokens.
 public struct WebDomainPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    public let onPicked: (Set<WebDomainToken>) -> Void
+    /// Callback invoked when the user confirms their selection.
+    public let onPicked: (Set<ManagedSettings.WebDomainToken>) -> Void
+    /// Local binding that keeps track of the most recent picker state.
     @State private var selection = FamilyActivitySelection()
 
-    public init(onPicked: @escaping (Set<WebDomainToken>) -> Void) { self.onPicked = onPicked }
+    public init(onPicked: @escaping (Set<ManagedSettings.WebDomainToken>) -> Void) { self.onPicked = onPicked }
 
     public var body: some View {
         NavigationStack {
@@ -19,7 +21,8 @@ public struct WebDomainPickerSheet: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Add") {
-                            onPicked(selection.webDomains)
+                            // Send only the tokens (the shield API does not need the resolved domains).
+                            onPicked(selection.webDomainTokens)
                             dismiss()
                         }
                     }
@@ -29,4 +32,3 @@ public struct WebDomainPickerSheet: View {
 }
 
 #Preview { WebDomainPickerSheet { _ in } }
-
